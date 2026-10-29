@@ -5,7 +5,6 @@ const candidateSchema = new mongoose.Schema(
     fullName: {
       type: String,
       required: true,
-      trim: true,
     },
     position: {
       type: mongoose.Schema.Types.ObjectId,
@@ -18,11 +17,10 @@ const candidateSchema = new mongoose.Schema(
     },
     manifesto: {
       type: String,
-      default: '',
     },
     imageUrl: {
       type: String,
-      default: '',
+      default: '', // Will store the Cloudinary URL
     },
     voteCount: {
       type: Number,

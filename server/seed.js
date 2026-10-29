@@ -10,34 +10,28 @@ const Vote = require('./models/Vote');
 const seedData = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('Connected to MongoDB for seeding...');
+    console.log('Connected to MongoDB for database reset...');
 
+    // Clear old data
     await Position.deleteMany({});
     await Candidate.deleteMany({});
     await Voter.deleteMany({});
     await Vote.deleteMany({});
 
-    // 1. Create Sample Voters
+    // 1. Create Default Admin
     const salt = await bcrypt.genSalt(10);
-    const defaultPassword = await bcrypt.hash('password123', salt);
+    const hashedAdminPin = await bcrypt.hash('ADMIN1', salt);
 
-    const testVoter = await Voter.create({
-      matricNumber: '22/47PT001',
-      fullName: 'Test Student',
-      level: 400,
-      password: defaultPassword,
-      role: 'voter',
-    });
-
-    const adminVoter = await Voter.create({
+    await Voter.create({
       matricNumber: 'ADMIN/001',
+      email: process.env.EMAIL_USER || 'admin@naps.unilorin.edu.ng',
       fullName: 'Electoral Chairman',
       level: 500,
-      password: defaultPassword,
+      votingPin: hashedAdminPin,
       role: 'admin',
     });
 
-    console.log('Sample Voters created (Password: password123)');
+    console.log('Admin account created (Matric: ADMIN/001 | PIN: ADMIN1).');
 
     // 2. Create Executive Positions
     const presidentPos = await Position.create({ title: 'President', displayOrder: 1 });

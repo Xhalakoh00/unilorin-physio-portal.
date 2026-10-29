@@ -9,16 +9,23 @@ const voterSchema = new mongoose.Schema(
       uppercase: true,
       trim: true,
     },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
     fullName: {
       type: String,
       required: true,
     },
     level: {
       type: Number,
-      required: true, // e.g., 100, 200, 300, 400, 500
+      required: true,
     },
-    password: {
-      type: String,
+    votingPin: {
+      type: String, // This will store the securely generated OTP/PIN
       required: true,
     },
     role: {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import API from '../api';
 
 const Login = () => {
-  const [formData, setFormData] = useState({ matricNumber: '', password: '' });
+  const [formData, setFormData] = useState({ matricNumber: '', votingPin: '' }); // <-- Changed to votingPin
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -17,10 +17,14 @@ const Login = () => {
     
     try {
       const res = await API.post('/auth/login', formData);
-      // Store the secure token in local storage
       localStorage.setItem('token', res.data.token);
-      // Redirect to the voting ballot
-      navigate('/ballot');
+      
+      // Check role and redirect accordingly
+      if (res.data.voter.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/ballot');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Authentication failed. Please try again.');
     }
@@ -30,7 +34,7 @@ const Login = () => {
     <div className="auth-container">
       <div className="auth-card">
         <h2>Voter Authentication</h2>
-        <p>Enter your Matriculation Number to access the electoral portal.</p>
+        <p>Enter your Matriculation Number and Voting PIN to access the ballot.</p>
         
         {error && <div className="error-alert">{error}</div>}
         
@@ -48,14 +52,15 @@ const Login = () => {
           </div>
           
           <div className="form-group">
-            <label>Password</label>
+            <label>6-Digit Voting PIN</label> {/* <-- Changed label */}
             <input
-              type="password"
-              name="password"
-              placeholder="••••••••"
-              value={formData.password}
+              type="text" /* <-- Changed type to text so they can see the generated characters */
+              name="votingPin" /* <-- Changed name */
+              placeholder="e.g., A7X9Q2"
+              value={formData.votingPin}
               onChange={handleChange}
               required
+              style={{ textTransform: 'uppercase' }}
             />
           </div>
           
