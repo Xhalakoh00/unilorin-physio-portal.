@@ -25,6 +25,25 @@ body {
   min-height: 100vh;
 }
 
+/* The NAPS Watermark */
+body::before {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 55vw;         /* Makes it massive */
+  height: 55vw;
+  background-image: url('/naps-logo.png'); /* Pulls from your public folder */
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.08;       /* Makes it a very faint watermark */
+  filter: blur(2px);   /* Softens the edges slightly */
+  z-index: -1;         /* Keeps it behind all your cards and text */
+  pointer-events: none; /* Prevents it from blocking button clicks */
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -477,3 +496,172 @@ body {
   font-weight: 700;
   font-size: 0.85rem;
 }
+
+/* Candidate Card Styling for Ballot */
+.candidate-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background-color: var(--card-bg);
+  border: 2px solid var(--card-border);
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.candidate-card:hover {
+  border-color: var(--navy-accent);
+  transform: translateY(-2px);
+}
+
+.candidate-card.selected {
+  border-color: var(--gold);
+  background-color: rgba(255, 215, 0, 0.05);
+}
+
+/* Photo Styling */
+.candidate-photo-container {
+  flex-shrink: 0;
+}
+
+.candidate-photo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--navy-accent);
+}
+
+.candidate-photo-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: var(--navy-accent);
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+/* Info Styling */
+.candidate-info {
+  flex: 1;
+}
+
+.candidate-info h4 {
+  color: var(--teal);
+  margin-bottom: 0.25rem;
+  font-size: 1.2rem;
+}
+
+.manifesto-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+.level-badge {
+  font-size: 0.75rem;
+  background-color: var(--bg-dark);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  color: var(--text-primary);
+  border: 1px solid var(--card-border);
+}
+
+/* Radio Button Circle */
+.selection-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--card-border);
+  position: relative;
+}
+
+.candidate-card.selected .selection-circle {
+  border-color: var(--gold);
+}
+
+.candidate-card.selected .selection-circle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  background-color: var(--gold);
+  border-radius: 50%;
+}
+
+/* Fix for Squished Cards: Forces one candidate per row */
+.candidates-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Top Left Navigation Logo */
+.nav-logo-img {
+  width: 45px;
+  height: 45px;
+  object-fit: contain;
+  margin-right: 12px;
+}
+
+/* Manifesto Button & Modal Styles */
+.manifesto-btn {
+  background: transparent;
+  border: 1px solid var(--navy-accent);
+  color: var(--teal);
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+  display: inline-block;
+}
+
+.manifesto-btn:hover {
+  background: var(--navy-accent);
+  color: var(--gold);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(2, 12, 27, 0.8);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  border: 2px solid var(--teal);
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 550px;
+  width: 90%;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* .candidates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+} */

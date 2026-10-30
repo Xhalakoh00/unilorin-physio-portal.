@@ -4,6 +4,7 @@ const Position = require('../models/Position');
 const Candidate = require('../models/Candidate');
 const Vote = require('../models/Vote');
 const Voter = require('../models/Voter');
+const ElectionSession = require('../models/ElectionSession');
 const { protect } = require('../middleware/authMiddleware');
 
 // @route   GET /api/election/ballot
@@ -85,25 +86,62 @@ router.post('/vote', protect, async (req, res) => {
 });
 
 // @route   GET /api/election/results
-// @desc    Live vote tallies per candidate
+// @desc    Get live election results and voter turnout
 router.get('/results', async (req, res) => {
   try {
-    const results = await Position.aggregate([
-      {
-        $lookup: {
-          from: 'candidates',
-          localField: '_id',
-          foreignField: 'position',
-          as: 'candidates',
-        },
-      },
-      { $sort: { displayOrder: 1 } },
-    ]);
+    const Position = require('../models/Position');
+    const Candidate = require('../models/Candidate');
+    const Voter = require('../models/Voter'); // Ensure Voter is imported
 
-    res.status(200).json({ success: true, results });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    // 1. Calculate Voter Turnout
+    // Exclude the master admin from the count
+    const totalVoters = await Voter.countDocuments({ matricNumber: { $ne: 'ADMIN/001' } });
+    // Count how many voters have at least one item in their votedPositions array
+    const votersWhoVoted = await Voter.countDocuments({ 
+      matricNumber: { $ne: 'ADMIN/001' }, 
+      'votedPositions.0': { $exists: true } 
+    });
+
+    // 2. Fetch Results
+    const positions = await Position.find().sort({ displayOrder: 1 });
+    const results = [];
+
+    for (let pos of positions) {
+      const candidates = await Candidate.find({ position: pos._id }).sort({ voteCount: -1 });
+      
+      const candidateData = candidates.map((c, index) => ({
+        _id: c._id,
+        fullName: c.fullName,
+        voteCount: c.voteCount,
+        imageUrl: c.imageUrl,
+        isWinner: index === 0 && c.voteCount > 0
+      }));
+
+      results.push({
+        _id: pos._id,
+        title: pos.title,
+        candidates: candidateData
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      results,
+      turnout: { total: totalVoters, voted: votersWhoVoted } 
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error fetching results.' });
   }
 });
 
+// @route   GET /api/election/session
+// @desc    Get current election session details for the voter countdown timer
+router.get('/session', async (req, res) => {
+  try {
+    const session = await ElectionSession.findOne({ status: { $in: ['Upcoming', 'Active'] } });
+    res.json({ success: true, session });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error fetching time.' });
+  }
+});
 module.exports = router;

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield } from 'lucide-react'; // We will use this icon until you drop the official Unilorin logo in
+// import { Shield } from 'lucide-react'; // We will use this icon until you drop the official Unilorin logo in
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -13,10 +13,10 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="nav-brand">
-        <Shield color="#ffd700" size={32} />
+       <img src="/naps-logo.png" alt="NAPS Logo" className="nav-logo-img" />
         <div className="brand-text">
          <h1>NAPS E-VOTING</h1>
-          <p>Department of Physiotherapy, Unilorin</p>
+          <p>Department of Physiotherapy, Unilorin Chapter</p>
         </div>
       </div>
       
