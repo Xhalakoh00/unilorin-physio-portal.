@@ -120,34 +120,74 @@ body::before {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  padding: 1.5rem; /* Prevents the card from touching the edges of the phone screen */
-  box-sizing: border-box; 
+  min-height: calc(100vh - 80px); /* accounts for navbar height */
+  padding: 1rem; /* Reduced padding for mobile screens */
 }
 
 .auth-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 2.5rem;
+  border-radius: 12px;
   width: 100%;
-  max-width: 450px; /* Allows full width on phones, but stops it from stretching on laptops */
-  padding: 2rem;
-  box-sizing: border-box; /* Crucial: ensures padding doesn't push the width off-screen */
-  
-  /* Keep your existing background-color, border-radius, and borders here */
+  max-width: 450px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  margin: 0 auto; /* Centers the card perfectly */
+}
+
+.auth-card h2 {
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+
+.auth-card p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
 }
 
 .form-group {
-  width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .form-group input {
   width: 100%;
-  box-sizing: border-box; /* Prevents text inputs from breaking out of the container */
-  /* Keep your existing padding, colors, and borders here */
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-dark);
+  border: 1px solid var(--navy-accent);
+  color: var(--text-primary);
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--teal);
 }
 
 .submit-btn {
-  width: 100%; /* Makes the yellow button stretch nicely across the mobile screen */
-  box-sizing: border-box;
+  width: 100%;
+  padding: 0.85rem;
+  background-color: var(--gold);
+  color: var(--bg-dark);
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 0.5rem;
 }
 
 .submit-btn:hover {
@@ -163,6 +203,7 @@ body::before {
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
 }
+
 /* Ballot Layout */
 .loading-state {
   text-align: center;
@@ -225,20 +266,17 @@ body::before {
   border: 1px solid var(--success);
 }
 
-.candidates-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
 .candidate-card {
-  background-color: var(--bg-dark);
-  border: 2px solid var(--navy-accent);
-  border-radius: 8px;
-  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background-color: var(--card-bg);
+  border: 2px solid var(--card-border);
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
 }
 
 .candidate-card:hover:not(.disabled) {
@@ -257,15 +295,13 @@ body::before {
 }
 
 .candidate-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
+  flex: 1;
 }
 
 .candidate-info h4 {
-  color: var(--text-primary);
-  font-size: 1.1rem;
+  color: var(--teal);
+  margin-bottom: 0.25rem;
+  font-size: 1.2rem;
 }
 
 .candidate-level {
@@ -276,10 +312,20 @@ body::before {
   color: var(--teal);
 }
 
-.manifesto {
+.manifesto-text {
   font-size: 0.85rem;
   color: var(--text-secondary);
   font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+.level-badge {
+  font-size: 0.75rem;
+  background-color: var(--bg-dark);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  color: var(--text-primary);
+  border: 1px solid var(--card-border);
 }
 
 .vote-btn {
@@ -458,30 +504,6 @@ body::before {
   font-size: 0.85rem;
 }
 
-/* Candidate Card Styling for Ballot */
-.candidate-card {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  background-color: var(--card-bg);
-  border: 2px solid var(--card-border);
-  padding: 1rem 1.5rem;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 1rem;
-}
-
-.candidate-card:hover {
-  border-color: var(--navy-accent);
-  transform: translateY(-2px);
-}
-
-.candidate-card.selected {
-  border-color: var(--gold);
-  background-color: rgba(255, 215, 0, 0.05);
-}
-
 /* Photo Styling */
 .candidate-photo-container {
   flex-shrink: 0;
@@ -506,33 +528,6 @@ body::before {
   justify-content: center;
   font-size: 2rem;
   font-weight: bold;
-}
-
-/* Info Styling */
-.candidate-info {
-  flex: 1;
-}
-
-.candidate-info h4 {
-  color: var(--teal);
-  margin-bottom: 0.25rem;
-  font-size: 1.2rem;
-}
-
-.manifesto-text {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-style: italic;
-  margin-bottom: 0.5rem;
-}
-
-.level-badge {
-  font-size: 0.75rem;
-  background-color: var(--bg-dark);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  color: var(--text-primary);
-  border: 1px solid var(--card-border);
 }
 
 /* Radio Button Circle */
@@ -621,8 +616,43 @@ body::before {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* .candidates-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 1.5rem;
-} */
+/* =========================================
+   Mobile Responsiveness (Phones & Tablets)
+   ========================================= */
+@media screen and (max-width: 768px) {
+  .brand-text h1 {
+    font-size: 1rem;
+  }
+  
+  .nav-brand {
+    gap: 8px;
+  }
+  
+  .nav-logo-img {
+    width: 35px;
+    height: 35px;
+  }
+
+  .auth-card {
+    padding: 1.5rem;
+  }
+  
+  .auth-card h2 {
+    font-size: 1.5rem;
+  }
+
+  .candidate-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding: 1.25rem 1rem;
+  }
+  
+  .selection-circle {
+    margin: 0 auto;
+  }
+  
+  .candidate-info {
+    width: 100%;
+  }
+}
