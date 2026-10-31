@@ -133,6 +133,9 @@ router.post('/generate-voter', async (req, res) => {
     `;
 
     try {
+      console.log(`Attempting to send email via Brevo to: ${savedVoter.email}`);
+      console.log(`Using Brevo User: ${process.env.EMAIL_USER}`);
+
       // 2. Attempt to send the email via Nodemailer
       await sendEmail({
         email: savedVoter.email,
@@ -140,6 +143,8 @@ router.post('/generate-voter', async (req, res) => {
         html: emailHtml,
       });
 
+      console.log("✅ Email sent successfully!");
+      
       // 3. Success response only if email leaves successfully
       res.status(201).json({
         success: true,
@@ -147,9 +152,9 @@ router.post('/generate-voter', async (req, res) => {
       });
 
     } catch (emailError) {
-      console.error('❌ Email dispatch timed out or failed:', emailError);
+      // 🚨 THIS IS THE CRITICAL LINE 🚨
+      console.error('❌ FATAL BREVO DISPATCH ERROR:', emailError); 
       
-      // THE LIFESAVER: Rollback database entry if email fails so student isn't locked out/stuck
       if (savedVoter && savedVoter._id) {
         await Voter.findByIdAndDelete(savedVoter._id);
       }
@@ -165,7 +170,6 @@ router.post('/generate-voter', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
-
 // @route   POST /api/admin/bulk-generate-voters
 // @desc    Process a CSV array of voters, generate PINs, and email them safely
 router.post('/bulk-generate-voters', async (req, res) => {
