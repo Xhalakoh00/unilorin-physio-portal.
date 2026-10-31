@@ -82,7 +82,7 @@ router.delete('/reset-votes', async (req, res) => {
 });
 
 // @route   POST /api/admin/generate-voter
-// @desc    Register a single voter, generate PIN, and email them with automated database rollback on email failure
+// @desc    Register a single voter, generate PIN, and email them
 router.post('/generate-voter', async (req, res) => {
   const { matricNumber, email, fullName, level } = req.body;
 
@@ -167,7 +167,7 @@ router.post('/generate-voter', async (req, res) => {
 });
 
 // @route   POST /api/admin/bulk-generate-voters
-// @desc    Process a CSV array of voters, generate PINs, and email them
+// @desc    Process a CSV array of voters, generate PINs, and email them safely
 router.post('/bulk-generate-voters', async (req, res) => {
   const { voters } = req.body; 
 
@@ -198,15 +198,6 @@ router.post('/bulk-generate-voters', async (req, res) => {
       const rawPin = generateRandomPin();
       const hashedPin = await bcrypt.hash(rawPin, salt);
 
-      // Add to array using the exact field names from your Database Model
-      validVoters.push({
-        fullName: row.fullName.trim(),
-        matricNumber: formattedMatric,
-        email: formattedEmail,
-        level: row.level || '400',
-        votingPin: hashedPin 
-      });
-
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
       const emailHtml = `
@@ -226,19 +217,31 @@ router.post('/bulk-generate-voters', async (req, res) => {
       `;
 
       try {
+        // Attempt to send email FIRST
         await sendEmail({
           email: formattedEmail,
           subject: 'Your Secure NAPS Voting Credentials',
           html: emailHtml,
         });
+        
+        // ONLY add to validVoters array if the email successfully dispatched
+        validVoters.push({
+          fullName: row.fullName.trim(),
+          matricNumber: formattedMatric,
+          email: formattedEmail,
+          level: row.level || '400',
+          votingPin: hashedPin 
+        });
+
         successCount++;
       } catch (bulkEmailErr) {
         console.error(`Bulk email failed for ${formattedMatric}:`, bulkEmailErr);
-        errorList.push(`Failed to email ${formattedMatric}`);
+        // Do NOT add them to the array. They will safely not be saved to DB.
+        errorList.push(`Failed to email ${formattedMatric} (Server timeout)`);
       }
     }
 
-    // Insert all the successfully processed voters into the database at once
+    // Insert only the successfully emailed voters into the database
     if (validVoters.length > 0) {
       await Voter.insertMany(validVoters);
     }
