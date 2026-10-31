@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../api';
 
 const Ballot = () => {
@@ -9,18 +10,24 @@ const Ballot = () => {
   const [success, setSuccess] = useState('');
   const [selectedVotes, setSelectedVotes] = useState({});
   const [voterInfo, setVoterInfo] = useState(null);
-  const [activeManifesto, setActiveManifesto] = useState(null); // Controls the pop-up
+  const [activeManifesto, setActiveManifesto] = useState(null); 
 
-  // New Time & Security States
   const [electionSession, setElectionSession] = useState(null);
-  const [timeStatus, setTimeStatus] = useState('loading'); // 'waiting', 'active', 'closed', 'none'
+  const [timeStatus, setTimeStatus] = useState('loading'); 
   const [countdown, setCountdown] = useState('');
+  
+  const navigate = useNavigate();
 
   const handleSelectCandidate = (positionId, candidateId) => {
     setSelectedVotes((prevVotes) => ({
       ...prevVotes,
       [positionId]: candidateId,
     }));
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
   };
 
   useEffect(() => {
@@ -33,7 +40,6 @@ const Ballot = () => {
         setVotedPositions(voterRes.data.voter.votedPositions);
         setVoterInfo(voterRes.data.voter);
 
-        // Fetch the master clock set by the Admin
         const sessionRes = await API.get('/election/session');
         setElectionSession(sessionRes.data.session);
 
@@ -46,7 +52,6 @@ const Ballot = () => {
     fetchElectionData();
   }, []);
 
-  // The Master Countdown Timer
   useEffect(() => {
     if (!electionSession) {
       setTimeStatus('none');
@@ -59,7 +64,6 @@ const Ballot = () => {
       const end = new Date(electionSession.endTime).getTime();
 
       if (now < start) {
-        // Election hasn't started yet
         setTimeStatus('waiting');
         const distance = start - now;
         const days = Math.floor(distance / (1000 * 60 * 60 * 24));
@@ -69,7 +73,6 @@ const Ballot = () => {
         
         setCountdown(`${days > 0 ? days + 'd ' : ''}${hours}h ${minutes}m ${seconds}s`);
       } else if (now >= start && now <= end) {
-        // Election is currently active
         setTimeStatus('active');
         const distance = end - now;
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -78,7 +81,6 @@ const Ballot = () => {
         
         setCountdown(`${hours}h ${minutes}m ${seconds}s remaining`);
       } else {
-        // Election time has passed
         setTimeStatus('closed');
       }
     }, 1000);
@@ -97,6 +99,11 @@ const Ballot = () => {
       const res = await API.post('/election/vote', { positionId, candidateId });
       setSuccess(res.data.message);
       setVotedPositions(res.data.votedPositions);
+      
+      // Update voterInfo to trigger the lockout if they've finished all positions
+      if (res.data.votedPositions.length === ballot.length) {
+        setVoterInfo(prev => ({ ...prev, hasVoted: true }));
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Error casting vote.');
     }
@@ -139,6 +146,37 @@ const Ballot = () => {
     );
   }
 
+  // --- DOUBLE VOTING PREVENTION SCREEN ---
+  // If the voter has finished all positions, they see this instead of the ballot.
+  if (voterInfo && voterInfo.hasVoted) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card" style={{ textAlign: 'center' }}>
+           <h2 style={{ color: 'var(--teal)', fontSize: '1.8rem', marginBottom: '1rem' }}>Vote Successfully Recorded</h2>
+           <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Thank you for participating in the election. Your ballot has been secured and encrypted.</p>
+           
+           <div style={{ 
+            backgroundColor: 'var(--bg-dark)', 
+            border: '1px dashed var(--gold)', 
+            padding: '1.5rem', 
+            borderRadius: '8px',
+            display: 'inline-block',
+            marginBottom: '2rem'
+          }}>
+            <span style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', letterSpacing: '1px' }}>
+              OFFICIAL AUDIT RECEIPT ID
+            </span>
+            <strong style={{ fontSize: '1.2rem', color: 'var(--gold)', fontFamily: 'monospace', letterSpacing: '2px' }}>
+              TXN-{voterInfo?._id?.substring(18, 24).toUpperCase()}-NAPS
+            </strong>
+          </div>
+
+           <button onClick={handleLogout} className="submit-btn">Log Out</button>
+        </div>
+      </div>
+    );
+  }
+
   // --- ACTIVE BALLOT SCREEN ---
   return (
     <div className="ballot-container">
@@ -152,52 +190,6 @@ const Ballot = () => {
           <strong style={{ color: 'var(--gold)', fontSize: '1.3rem', fontFamily: 'monospace' }}>{countdown}</strong>
         </div>
       </div>
-
-      {/* THE DIGITAL VOTER RECEIPT */}
-      {ballot.length > 0 && votedPositions.length === ballot.length && (
-        <div className="digital-receipt-card" style={{ 
-          background: 'linear-gradient(135deg, rgba(13, 148, 136, 0.1) 0%, rgba(2, 12, 27, 0.9) 100%)',
-          border: '2px solid var(--teal)', 
-          borderRadius: '12px', 
-          padding: '2rem', 
-          textAlign: 'center', 
-          marginBottom: '2.5rem',
-          boxShadow: '0 10px 30px rgba(13, 148, 136, 0.2)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          {/* Watermark inside the receipt */}
-          <div style={{ position: 'absolute', top: '-20%', right: '-10%', opacity: '0.05', transform: 'scale(1.5)', pointerEvents: 'none' }}>
-             <img src="/naps-logo.png" alt="NAPS" width="300" />
-          </div>
-
-          <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✅</div>
-          <h2 style={{ color: 'var(--teal)', fontSize: '2rem', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '2px' }}>
-            Ballot Secured
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>
-            Thank you, {voterInfo?.fullName}. Your encrypted votes have been successfully transmitted to the Electoral Commission.
-          </p>
-          
-          <div style={{ 
-            backgroundColor: 'var(--bg-dark)', 
-            border: '1px dashed var(--gold)', 
-            padding: '1.5rem', 
-            borderRadius: '8px',
-            display: 'inline-block'
-          }}>
-            <span style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', letterSpacing: '1px' }}>
-              OFFICIAL AUDIT RECEIPT ID
-            </span>
-            <strong style={{ fontSize: '1.8rem', color: 'var(--gold)', fontFamily: 'monospace', letterSpacing: '3px' }}>
-              TXN-{voterInfo?._id?.substring(18, 24).toUpperCase()}-NAPS
-            </strong>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--teal)', marginTop: '1.5rem', fontStyle: 'italic' }}>
-            * Please screenshot this receipt for your records.
-          </p>
-        </div>
-      )}
 
       {error && <div className="error-alert">{error}</div>}
       {success && <div className="success-alert">{success}</div>}
@@ -236,7 +228,7 @@ const Ballot = () => {
                       <button 
                         className="manifesto-btn"
                         onClick={(e) => {
-                          e.stopPropagation(); // Prevents selecting the candidate when clicking the button
+                          e.stopPropagation(); 
                           setActiveManifesto({ name: candidate.fullName, text: candidate.manifesto });
                         }}
                       >
@@ -269,7 +261,7 @@ const Ballot = () => {
         })}
       </div>
 
-      {/* MANIFESTO MODAL (Pasted right before the final closing div) */}
+      {/* MANIFESTO MODAL */}
       {activeManifesto && (
         <div className="modal-overlay" onClick={() => setActiveManifesto(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
