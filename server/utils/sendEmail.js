@@ -1,23 +1,23 @@
 const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
-  // 1. Create a transporter
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // Use SSL/TLS
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    // This tells Render's server not to get stuck on strict certificate checks
-    rejectUnauthorized: false 
-  },
-  connectionTimeout: 10000, // Fails quickly (10 seconds) instead of hanging for minutes
-  greetingTimeout: 10000,
-  socketTimeout: 10000
-});
+  // 1. Create a transporter optimized for Cloud providers like Render
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,           // Switch to 587 to bypass cloud port-blocking
+    secure: false,       // MUST be false when using port 587
+    requireTLS: true,    // Forces a secure connection without triggering strict blocks
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    },
+    tls: {
+      rejectUnauthorized: false 
+    },
+    connectionTimeout: 10000, 
+    greetingTimeout: 10000,
+    socketTimeout: 10000
+  });
 
   // 2. Define the email options
   const mailOptions = {

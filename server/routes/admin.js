@@ -82,7 +82,7 @@ router.delete('/reset-votes', async (req, res) => {
 });
 
 // @route   POST /api/admin/generate-voter
-// @desc    Register a single voter, generate PIN, and email them
+// @desc    Register a single voter, generate PIN, and email them with automated database rollback on email failure
 router.post('/generate-voter', async (req, res) => {
   const { matricNumber, email, fullName, level } = req.body;
 
@@ -90,10 +90,13 @@ router.post('/generate-voter', async (req, res) => {
     return res.status(400).json({ success: false, message: 'All fields are required.' });
   }
 
+  let savedVoter = null;
+
   try {
     const formattedMatric = matricNumber.trim().toUpperCase();
+    const formattedEmail = email.trim().toLowerCase();
     
-    const voterExists = await Voter.findOne({ $or: [{ matricNumber: formattedMatric }, { email }] });
+    const voterExists = await Voter.findOne({ $or: [{ matricNumber: formattedMatric }, { email: formattedEmail }] });
     if (voterExists) {
       return res.status(400).json({ success: false, message: 'Voter with this Matric Number or Email already exists.' });
     }
@@ -102,10 +105,11 @@ router.post('/generate-voter', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPin = await bcrypt.hash(rawPin, salt);
 
-    const newVoter = await Voter.create({
+    // 1. Create and save the voter to MongoDB first
+    savedVoter = await Voter.create({
       matricNumber: formattedMatric,
-      email,
-      fullName,
+      email: formattedEmail,
+      fullName: fullName.trim(),
       level,
       votingPin: hashedPin,
     });
@@ -115,7 +119,7 @@ router.post('/generate-voter', async (req, res) => {
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
         <h2 style="color: #00b4d8; text-align: center;">NAPS E-Voting Portal</h2>
-        <p>Dear <strong>${fullName}</strong>,</p>
+        <p>Dear <strong>${fullName.trim()}</strong>,</p>
         <p>You have been registered to vote in the upcoming NAPS Departmental Election. Below are your secure login credentials:</p>
         <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0;">
           <p style="margin: 0; font-size: 16px;">Matric Number: <strong>${formattedMatric}</strong></p>
@@ -128,17 +132,36 @@ router.post('/generate-voter', async (req, res) => {
       </div>
     `;
 
-    await sendEmail({
-      email: newVoter.email,
-      subject: 'Your Secure NAPS Voting Credentials',
-      html: emailHtml,
-    });
+    try {
+      // 2. Attempt to send the email via Nodemailer
+      await sendEmail({
+        email: savedVoter.email,
+        subject: 'Your Secure NAPS Voting Credentials',
+        html: emailHtml,
+      });
 
-    res.status(201).json({
-      success: true,
-      message: `Voter created and email successfully sent to ${email}.`,
-    });
+      // 3. Success response only if email leaves successfully
+      res.status(201).json({
+        success: true,
+        message: `Voter created and email successfully sent to ${formattedEmail}.`,
+      });
+
+    } catch (emailError) {
+      console.error('❌ Email dispatch timed out or failed:', emailError);
+      
+      // THE LIFESAVER: Rollback database entry if email fails so student isn't locked out/stuck
+      if (savedVoter && savedVoter._id) {
+        await Voter.findByIdAndDelete(savedVoter._id);
+      }
+
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Email connection timed out or failed. Voter record was rolled back. Please try again.' 
+      });
+    }
+
   } catch (error) {
+    console.error("❌ Admin Generate Voter Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -162,9 +185,10 @@ router.post('/bulk-generate-voters', async (req, res) => {
       if (!row.matricNumber || !row.email || !row.fullName) continue;
 
       const formattedMatric = row.matricNumber.trim().toUpperCase();
+      const formattedEmail = row.email.trim().toLowerCase();
       
       // Skip if voter already exists
-      const exists = await Voter.findOne({ $or: [{ matricNumber: formattedMatric }, { email: row.email.trim() }] });
+      const exists = await Voter.findOne({ $or: [{ matricNumber: formattedMatric }, { email: formattedEmail }] });
       if (exists) {
         errorList.push(`${formattedMatric} already registered.`);
         continue;
@@ -178,13 +202,12 @@ router.post('/bulk-generate-voters', async (req, res) => {
       validVoters.push({
         fullName: row.fullName.trim(),
         matricNumber: formattedMatric,
-        email: row.email.trim(),
+        email: formattedEmail,
         level: row.level || '400',
-        votingPin: hashedPin // Use votingPin so it matches the DB schema perfectly
+        votingPin: hashedPin 
       });
 
-      // Send the raw, unhashed PIN directly to the student's email
-     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
@@ -202,16 +225,20 @@ router.post('/bulk-generate-voters', async (req, res) => {
         </div>
       `;
 
-      await sendEmail({
-        email: row.email.trim(),
-        subject: 'Your Secure NAPS Voting Credentials',
-        html: emailHtml,
-      });
-
-      successCount++;
+      try {
+        await sendEmail({
+          email: formattedEmail,
+          subject: 'Your Secure NAPS Voting Credentials',
+          html: emailHtml,
+        });
+        successCount++;
+      } catch (bulkEmailErr) {
+        console.error(`Bulk email failed for ${formattedMatric}:`, bulkEmailErr);
+        errorList.push(`Failed to email ${formattedMatric}`);
+      }
     }
 
-    // Insert all the hashed voters into the database at once
+    // Insert all the successfully processed voters into the database at once
     if (validVoters.length > 0) {
       await Voter.insertMany(validVoters);
     }
