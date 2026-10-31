@@ -4,15 +4,18 @@ const sendEmail = async (options) => {
   const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
     port: 587,
-    secure: false, // Must be false when using port 587
+    secure: false, 
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
-    }
+    },
+    connectionTimeout: 10000, // Forces a quick failure after 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 10000
   });
 
   const mailOptions = {
-    // This MUST match the email address you used to create your Brevo account
+    // Make sure this matches your verified Brevo email exactly
     from: `NAPS Electoral Committee <salakhaleel07@gmail.com>`, 
     to: options.email,
     subject: options.subject,
