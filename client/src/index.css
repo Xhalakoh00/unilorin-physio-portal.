@@ -620,38 +620,60 @@ body::before {
    Mobile Responsiveness (Phones & Tablets)
    ========================================= */
 @media screen and (max-width: 768px) {
+  /* 1. Navbar Fixes: Shrinks the title and protects the button */
   .brand-text h1 {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
-  
+  .brand-text p {
+    font-size: 0.7rem;
+  }
   .nav-brand {
     gap: 8px;
+    flex-shrink: 1; 
   }
-  
   .nav-logo-img {
-    width: 35px;
-    height: 35px;
+    width: 30px;
+    height: 30px;
+  }
+  .login-btn, .logout-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    white-space: nowrap !important; /* Strictly prevents text wrapping */
+    flex-shrink: 0 !important;      /* Strictly prevents button squishing */
   }
 
+  /* 2. Admin Dashboard Fixes: Turns the 4 squished tabs into a clean 2x2 grid */
+  .admin-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr; 
+    gap: 0.5rem;
+  }
+  .tab-btn {
+    padding: 0.6rem 0.2rem;
+    font-size: 0.85rem;
+    width: 100%;
+    text-align: center;
+  }
+  .admin-card {
+    padding: 1.25rem;
+  }
+
+  /* 3. Auth & Ballot Card Fixes */
   .auth-card {
     padding: 1.5rem;
   }
-  
   .auth-card h2 {
     font-size: 1.5rem;
   }
-
   .candidate-card {
     flex-direction: column;
     text-align: center;
     gap: 1rem;
     padding: 1.25rem 1rem;
   }
-  
   .selection-circle {
     margin: 0 auto;
   }
-  
   .candidate-info {
     width: 100%;
   }
