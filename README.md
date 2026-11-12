@@ -41,4 +41,4 @@ To run this project locally, ensure you have Node.js and MongoDB installed.
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/Khalakoh00/unilorin-physio-portal.git](https://github.com/Khalakoh00/unilorin-physio-portal.git)
+   git clone [https://github.com/Khalakoh00/unilorin-physio-portal.git](https://github.com/Xhalakoh00/unilorin-physio-portal.git)
